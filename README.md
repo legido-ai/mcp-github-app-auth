@@ -1,0 +1,83 @@
+# MCP GitHub App Server
+
+An MCP (Model Context Protocol) server written in Python that provides GitHub operations using GitHub App authentication instead of personal access tokens.
+
+## Purpose
+
+This server mirrors the most-used operations of the official GitHub MCP server (repos, PRs, branches, etc.) but authenticates using GitHub App credentials via `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`—no Personal Access Token (PAT) required.
+
+This design generates a short-lived installation access token (`ghs_…`) at runtime from your App's credentials and injects it into API and Git operations.
+
+## Features
+
+- Clone repositories
+- Create branches
+- Push changes
+- Create pull requests
+- Merge pull requests
+- Create/update files
+
+## Prerequisites
+
+- A GitHub App installed on the target org/repo with at least:
+  - Repository permissions → Contents: Read & write, Pull requests: Read & write, Metadata: Read
+- Environment variables set:
+  - `GITHUB_APP_ID` → the App ID (integer)
+  - `GITHUB_PRIVATE_KEY` → the App's PEM private key
+  - `GITHUB_INSTALLATION_ID` → installation id for the org/user where the app is installed
+- Python 3.10+
+
+## Installation
+
+1. Clone this repository
+2. Install dependencies: `pip install .`
+
+## Usage
+
+Set the required environment variables:
+
+```bash
+export GITHUB_APP_ID=your_app_id
+export GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
+export GITHUB_INSTALLATION_ID=your_installation_id
+```
+
+Then run the server:
+
+```bash
+python -m mcp_github_app.server
+```
+
+Or use the provided script:
+
+```bash
+./scripts/run.sh
+```
+
+## Integration with Qwen Code
+
+Add the following to your project's `.qwen/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "github-app": {
+      "command": "python",
+      "args": ["-m", "mcp_github_app.server"],
+      "env": {
+        "GITHUB_APP_ID": "${env:GITHUB_APP_ID}",
+        "GITHUB_PRIVATE_KEY": "${env:GITHUB_PRIVATE_KEY}",
+        "GITHUB_INSTALLATION_ID": "${env:GITHUB_INSTALLATION_ID}"
+      },
+      "trust": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+## Security Notes
+
+- Installation tokens expire after approximately 1 hour
+- The server caches and refreshes tokens automatically
+- Actions performed with installation tokens are attributed to the App installation, not a human account

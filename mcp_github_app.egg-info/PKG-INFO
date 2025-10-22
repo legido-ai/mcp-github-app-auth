@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: mcp-github-app
+Version: 0.1.0
+Summary: MCP server (Python) for GitHub using GitHub App auth
+Requires-Python: >=3.10
+Requires-Dist: modelcontextprotocol>=0.1.0
+Requires-Dist: pyjwt[crypto]
+Requires-Dist: cryptography
+Requires-Dist: requests
+Requires-Dist: GitPython
+Requires-Dist: pydantic
