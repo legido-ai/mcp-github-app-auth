@@ -1,6 +1,0 @@
-modelcontextprotocol>=0.1.0
-pyjwt[crypto]
-cryptography
-requests
-GitPython
-pydantic
