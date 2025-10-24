@@ -117,4 +117,5 @@ class GitHubAppServer(Server):
 server = GitHubAppServer()
 
 if __name__ == "__main__":
-    server.run_stdio()
+    from mcp.server.stdio import stdio_server
+    stdio_server()(server)
