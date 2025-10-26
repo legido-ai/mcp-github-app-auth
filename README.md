@@ -148,6 +148,34 @@ docker run -d --env-file .env -p 3000:3000 --name mcp-github-server mcp-github-a
 
 4. Configure Qwen to connect to the running container instead of running the server locally.
 
+Alternatively, you can configure Qwen to run the MCP server directly in a Docker container by adding the following to your project's `.qwen/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "github-app": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e", 
+        "GITHUB_APP_ID=${env:GITHUB_APP_ID}",
+        "-e",
+        "GITHUB_PRIVATE_KEY=${env:GITHUB_PRIVATE_KEY}",
+        "-e",
+        "GITHUB_INSTALLATION_ID=${env:GITHUB_INSTALLATION_ID}",
+        "mcp-github-app-server"
+      ],
+      "trust": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+This approach runs the MCP server in an isolated Docker container each time Qwen needs to perform Git operations, providing better isolation and security.
+
 You can also use the example in `examples/qwen-docker/` which includes a complete setup with docker-compose.
 
 ## Security Notes
