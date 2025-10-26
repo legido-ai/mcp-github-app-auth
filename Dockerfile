@@ -16,9 +16,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Ensure modelcontextprotocol is properly installed
-RUN pip install --force-reinstall --no-cache-dir modelcontextprotocol>=0.1.0
-
 # Copy the application code
 COPY . .
 
