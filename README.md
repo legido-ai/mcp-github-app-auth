@@ -54,6 +54,44 @@ Or use the provided script:
 ./scripts/run.sh
 ```
 
+## Testing
+
+This repository includes a comprehensive test suite in the `tests/` directory:
+
+- `tests/test_auth.py`: Tests for authentication functionality
+- `tests/test_git_ops.py`: Tests for Git operations
+- `tests/test_server.py`: Tests for the MCP server functionality
+- `tests/test_integration.py`: Integration tests for full workflows
+
+### Running Tests
+
+You can run the tests using pytest:
+```bash
+# Run all tests with verbose output
+python3 -m pytest tests/ -v
+
+# Run all tests and show coverage
+python3 -m pytest tests/ --cov=mcp_github_app
+
+# Run specific test file
+python3 -m pytest tests/test_auth.py
+```
+
+Alternatively, you can use the test runner script:
+```bash
+python3 run_tests.py
+```
+
+### Prerequisites for Testing
+Make sure you have the required packages installed:
+```bash
+pip install pytest pytest-cov
+```
+
+## Docker Example with Qwen Integration
+
+For an example of using Qwen with this server via Docker, see the `examples/qwen-docker/` directory.
+
 ## Integration with Qwen Code
 
 Add the following to your project's `.qwen/settings.json`:

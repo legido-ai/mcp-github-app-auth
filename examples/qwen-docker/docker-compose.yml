@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  mcp-github-app:
+    build: ..
+    container_name: mcp-github-app-server
+    ports:
+      - "3000:3000"
+    environment:
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_PRIVATE_KEY=${GITHUB_PRIVATE_KEY}
+      - GITHUB_INSTALLATION_ID=${GITHUB_INSTALLATION_ID}
+    volumes:
+      - ./data:/app/data  # For any data persistence if needed
+    restart: unless-stopped
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
