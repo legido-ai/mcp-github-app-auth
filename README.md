@@ -1,5 +1,16 @@
 # MCP GitHub App Server
 
+## Table of Contents
+- [Purpose](#purpose)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Testing](#testing)
+- [Docker Example with Qwen Integration](#docker-example-with-qwen-integration)
+- [Integration with Qwen Code](#integration-with-qwen-code)
+- [Security Notes](#security-notes)
+
 An MCP (Model Context Protocol) server written in Python that provides GitHub operations using GitHub App authentication instead of personal access tokens.
 
 ## Purpose
@@ -94,6 +105,7 @@ For an example of using Qwen with this server via Docker, see the `examples/qwen
 
 ## Integration with Qwen Code
 
+### Direct Integration
 Add the following to your project's `.qwen/settings.json`:
 
 ```json
@@ -113,6 +125,30 @@ Add the following to your project's `.qwen/settings.json`:
   }
 }
 ```
+
+### Docker Container Integration (Recommended for Qwen)
+For integrating with Qwen via a Docker container, you can run the MCP server in a container:
+
+1. Build the Docker image:
+```bash
+docker build -t mcp-github-app-server .
+```
+
+2. Create a `.env` file containing your GitHub App credentials:
+```bash
+GITHUB_APP_ID=your_app_id
+GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+GITHUB_INSTALLATION_ID=your_installation_id
+```
+
+3. Run the server container:
+```bash
+docker run -d --env-file .env -p 3000:3000 --name mcp-github-server mcp-github-app-server
+```
+
+4. Configure Qwen to connect to the running container instead of running the server locally.
+
+You can also use the example in `examples/qwen-docker/` which includes a complete setup with docker-compose.
 
 ## Security Notes
 
