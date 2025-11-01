@@ -7,6 +7,7 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Testing](#testing)
+- [Available Tools](#available-tools)
 - [Docker Example with Qwen Integration](#docker-example-with-qwen-integration)
 - [Integration with Qwen Code](#integration-with-qwen-code)
 - [Security Notes](#security-notes)
@@ -98,6 +99,30 @@ Make sure you have the required packages installed:
 ```bash
 pip install pytest pytest-cov
 ```
+
+## Available Tools
+
+The MCP GitHub App server exposes the following tools for interacting with GitHub repositories:
+
+- **`clone_repo`**: Clones a specified repository to a destination directory.
+  - **Parameters**: `owner` (string), `repo` (string), `dest_dir` (string)
+  - **Example**: `echo '{"jsonrpc": "2.0", "id": 1, "method": "clone_repo", "params": {"owner": "legido-ai", "repo": "quote-agent", "dest_dir": "/tmp/quote-agent"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test`
+
+- **`create_branch`**: Creates a new branch in a repository.
+  - **Parameters**: `owner` (string), `repo` (string), `new_branch_name` (string), `base_branch` (string, optional, defaults to 'main')
+  - **Example**: `echo '{"jsonrpc": "2.0", "id": 2, "method": "create_branch", "params": {"owner": "legido-ai", "repo": "quote-agent", "new_branch_name": "test-branch-from-readme", "base_branch": "main"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test`
+
+- **`push_changes`**: Pushes local changes to a remote branch.
+  - **Parameters**: `owner` (string), `repo` (string), `branch` (string), `commit_message` (string), `file_changes` (object, e.g., `{"path/to/file": "content"}`)
+
+- **`create_pull_request`**: Creates a pull request between two branches.
+  - **Parameters**: `owner` (string), `repo` (string), `title` (string), `body` (string), `head` (string, source branch), `base` (string, target branch)
+
+- **`merge_pull_request`**: Merges a pull request.
+  - **Parameters**: `owner` (string), `repo` (string), `pull_number` (integer), `merge_method` (string, optional, e.g., 'merge', 'squash', 'rebase')
+
+- **`create_update_file`**: Creates or updates a file in a repository.
+  - **Parameters**: `owner` (string), `repo` (string), `path` (string), `content` (string), `commit_message` (string), `branch` (string, optional)
 
 ## Docker Example with Qwen Integration
 
