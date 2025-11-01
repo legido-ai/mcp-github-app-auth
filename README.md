@@ -90,6 +90,10 @@ This will return a JSON response like:
 git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
 ```
 
+## Image Size
+
+The Docker image has been optimized using Alpine Linux, reducing the size from ~693MB to ~373MB (a ~46% reduction).
+
 ## Testing
 
 Run tests with:

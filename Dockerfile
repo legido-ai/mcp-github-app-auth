@@ -1,13 +1,15 @@
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
 WORKDIR /app
 
 # Install system dependencies for building Python packages
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     gcc \
     g++ \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    musl-dev \
+    libffi-dev \
+    openssl-dev
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
@@ -25,7 +27,7 @@ COPY . .
 RUN pip install -e .
 
 # Create a non-root user
-RUN adduser --disabled-password --gecos '' appuser && \
+RUN adduser -D appuser && \
     chown -R appuser:appuser /app && \
     chmod -R 777 /app
 # Give the appuser write access to common directories
