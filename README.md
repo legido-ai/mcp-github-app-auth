@@ -2,13 +2,19 @@
 
 A lightweight MCP (Model Context Protocol) server that provides GitHub operations using GitHub App authentication instead of personal access tokens.
 
-## Tools Exposed
+## Primary Function
 
-The server exposes the following tools for interacting with GitHub repositories:
+The main purpose of this server is to obtain temporary GitHub tokens for accessing private repositories using GitHub App authentication. The primary tool is:
 
-- **`clone_repo`**: Clone a GitHub repository
-  - Parameters: `owner` (string), `repo` (string), `dest_dir` (string, optional), `branch` (string, optional)
+- **`clone_repo`**: Obtain a GitHub token for accessing a repository
+  - Parameters: `owner` (string), `repo` (string)
   - Returns a GitHub token that can be used for authentication
+
+Note: Despite the name, this tool does not actually clone the repository. It only returns a GitHub token that can be used to clone the repository directly using git.
+
+## Additional Tools
+
+The server also provides tools for performing common Git operations:
 
 - **`create_branch`**: Create a new branch in a GitHub repository
   - Parameters: `owner` (string), `repo` (string), `new_branch` (string), `from_ref` (string, optional, default: "heads/main")
@@ -42,11 +48,7 @@ Build the Docker image:
 docker build . -t localhost/test
 ```
 
-Execute any of the supported commands as shown in the examples below.
-
-## Tool Examples
-
-### clone_repo
+### Get GitHub Token
 
 Execute the `clone_repo` command to get a GitHub token:
 ```bash
@@ -61,34 +63,6 @@ This returns a JSON response with the GitHub token:
 You can then use this token to clone the repository directly:
 ```bash
 git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
-```
-
-### create_branch
-
-Create a new branch in a repository:
-```bash
-echo '{"jsonrpc": "2.0", "id": 2, "method": "create_branch", "params": {"owner": "fictional-org", "repo": "private-repo", "new_branch": "feature-branch"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
-```
-
-### push
-
-Push changes to a repository:
-```bash
-echo '{"jsonrpc": "2.0", "id": 3, "method": "push", "params": {"cwd": "/path/to/repo", "remote": "origin", "branch": "main"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
-```
-
-### create_pull_request
-
-Create a pull request:
-```bash
-echo '{"jsonrpc": "2.0", "id": 4, "method": "create_pull_request", "params": {"owner": "fictional-org", "repo": "private-repo", "title": "Feature update", "head": "feature-branch", "base": "main", "body": "Description of changes"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
-```
-
-### merge_pull_request
-
-Merge a pull request:
-```bash
-echo '{"jsonrpc": "2.0", "id": 5, "method": "merge_pull_request", "params": {"owner": "fictional-org", "repo": "private-repo", "number": 123}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
 ```
 
 ## End-to-End Example
