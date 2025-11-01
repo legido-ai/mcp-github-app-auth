@@ -148,22 +148,40 @@ if __name__ == "__main__":
             params = request["params"]
             request_id = request.get("id", None)
 
-            result = await server.call_tool(method, params)
-            # After successful clone, list the directory to verify if dest_dir is provided
-            if method == "clone_repo":
-                dest_dir = params.get("dest_dir")
-                if dest_dir:
-                    try:
-                        cloned_files = os.listdir(dest_dir)
-                        response = {"jsonrpc": "2.0", "id": request_id, "result": {"clone_output": result, "cloned_files": cloned_files}}
-                    except:
-                        # If we can't list the directory (e.g., temporary dir was used), just return the result
+            # Handle tools/list method specifically
+            if method == "tools/list":
+                tools = server.list_tools()
+                # Convert tools to the proper format for MCP
+                tool_list = []
+                for tool in tools:
+                    tool_dict = {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "inputSchema": tool.inputSchema
+                    }
+                    # Add title if available
+                    if hasattr(tool, 'title') and tool.title:
+                        tool_dict["title"] = tool.title
+                    tool_list.append(tool_dict)
+                
+                response = {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tool_list}}
+            else:
+                result = await server.call_tool(method, params)
+                # After successful clone, list the directory to verify if dest_dir is provided
+                if method == "clone_repo":
+                    dest_dir = params.get("dest_dir")
+                    if dest_dir:
+                        try:
+                            cloned_files = os.listdir(dest_dir)
+                            response = {"jsonrpc": "2.0", "id": request_id, "result": {"clone_output": result, "cloned_files": cloned_files}}
+                        except:
+                            # If we can't list the directory (e.g., temporary dir was used), just return the result
+                            response = {"jsonrpc": "2.0", "id": request_id, "result": result}
+                    else:
+                        # When dest_dir is not provided, just return the result (which should contain the token)
                         response = {"jsonrpc": "2.0", "id": request_id, "result": result}
                 else:
-                    # When dest_dir is not provided, just return the result (which should contain the token)
                     response = {"jsonrpc": "2.0", "id": request_id, "result": result}
-            else:
-                response = {"jsonrpc": "2.0", "id": request_id, "result": result}
             print(json.dumps(response))
         except Exception as e:
             error_response = {

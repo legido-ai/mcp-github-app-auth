@@ -2,9 +2,11 @@
 
 A lightweight MCP (Model Context Protocol) server that provides GitHub operations using GitHub App authentication instead of personal access tokens.
 
-## Primary Function
+## Tools
 
-The main purpose of this server is to obtain temporary GitHub tokens for accessing private repositories using GitHub App authentication. The primary tool is:
+The server implements the standard MCP protocol and supports the `tools/list` method to enumerate available tools. The available tools are:
+
+### Primary Tool
 
 - **`clone_repo`**: Obtain a GitHub token for accessing a repository
   - Parameters: `owner` (string), `repo` (string)
@@ -12,7 +14,7 @@ The main purpose of this server is to obtain temporary GitHub tokens for accessi
 
 Note: Despite the name, this tool does not actually clone the repository. It only returns a GitHub token that can be used to clone the repository directly using git.
 
-## Additional Tools
+### Additional Tools
 
 The server also provides tools for performing common Git operations:
 
@@ -48,6 +50,18 @@ Build the Docker image:
 docker build . -t localhost/test
 ```
 
+### List Available Tools
+
+List all available tools:
+```bash
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+```
+
+This returns a JSON response with the list of tools and their schemas:
+```json
+{"jsonrpc": "2.0", "id": 1, "result": {"tools": [...]}]}
+```
+
 ### Get GitHub Token
 
 Execute the `clone_repo` command to get a GitHub token:
@@ -72,7 +86,12 @@ git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-
 docker build . -t localhost/test
 ```
 
-2. Get a GitHub token by running the clone_repo command:
+2. List available tools:
+```bash
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+```
+
+3. Get a GitHub token by running the clone_repo command:
 ```bash
 echo '{"jsonrpc": "2.0", "id": 1, "method": "clone_repo", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
 ```
@@ -82,7 +101,7 @@ This will return a JSON response like:
 {"jsonrpc": "2.0", "id": 1, "result": {"github_token": "ghs_tokenhere"}}
 ```
 
-3. Use the returned token to clone the repository:
+4. Use the returned token to clone the repository:
 ```bash
 git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
 ```
