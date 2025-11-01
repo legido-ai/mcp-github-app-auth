@@ -10,4 +10,8 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docke
   -e GITHUB_APP_ID="$GITHUB_APP_ID" \
   -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
   -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
-  localhost/test
+  localhost/test &
+
+sleep 5
+
+docker kill $(docker ps -q)

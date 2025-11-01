@@ -105,6 +105,27 @@ class TestServer(unittest.TestCase):
         self.assertEqual(args.commit_message, 'Merge commit message')
 
     @patch('mcp_github_app.git_ops.clone_repo')
+    def test_call_tool_clone_repo_returns_token(self, mock_clone_repo):
+        """Test that clone_repo tool returns only the GitHub token."""
+        # Mock the clone_repo function to return a dictionary with github_token
+        mock_clone_repo.return_value = {
+            "clone_output": "Repository cloned successfully",
+            "github_token": "ghs_testtoken12345"
+        }
+        
+        # Call the tool
+        result = asyncio.run(self.server.call_tool('clone_repo', {
+            'owner': 'test-owner',
+            'repo': 'test-repo',
+            'dest_dir': '/tmp/test'
+        }))
+
+        # Verify the function was called with correct arguments
+        mock_clone_repo.assert_called_once_with('test-owner', 'test-repo', '/tmp/test', None)
+        # Verify that the result is a dictionary containing only the github_token
+        self.assertEqual(result, {"github_token": "ghs_testtoken12345"})
+
+    @patch('mcp_github_app.git_ops.clone_repo')
     def test_call_tool_clone_repo(self, mock_clone_repo):
         """Test calling the clone_repo tool."""
         # Mock the clone_repo function to return a success message
@@ -124,8 +145,11 @@ class TestServer(unittest.TestCase):
     @patch('mcp_github_app.git_ops.clone_repo')
     def test_call_tool_clone_repo_with_branch(self, mock_clone_repo):
         """Test calling the clone_repo tool with branch parameter."""
-        # Mock the clone_repo function to return a success message
-        mock_clone_repo.return_value = "Repository cloned successfully"
+        # Mock the clone_repo function to return a dictionary with github_token
+        mock_clone_repo.return_value = {
+            "clone_output": "Repository cloned successfully",
+            "github_token": "ghs_testtoken12345"
+        }
         
         # Call the tool
         result = asyncio.run(self.server.call_tool('clone_repo', {
@@ -137,7 +161,31 @@ class TestServer(unittest.TestCase):
 
         # Verify the function was called with correct arguments
         mock_clone_repo.assert_called_once_with('test-owner', 'test-repo', '/tmp/test', 'develop')
-        self.assertEqual(result, "Repository cloned successfully")
+        # Verify that the result is a dictionary containing only the github_token
+        self.assertEqual(result, {"github_token": "ghs_testtoken12345"})
+
+    @patch('mcp_github_app.git_ops.clone_repo')
+    def test_call_tool_clone_repo_without_dest_dir(self, mock_clone_repo):
+        """Test calling the clone_repo tool without dest_dir parameter."""
+        # Mock the clone_repo function to return a dictionary with github_token
+        mock_clone_repo.return_value = {
+            "clone_output": "Repository cloned successfully",
+            "github_token": "ghs_testtoken12345"
+        }
+        
+        # Call the tool without dest_dir
+        result = asyncio.run(self.server.call_tool('clone_repo', {
+            'owner': 'test-owner',
+            'repo': 'test-repo'
+        }))
+
+        # Verify the function was called with correct arguments (dest_dir would be filled in by the server logic)
+        # Since the actual call happens inside run_in_executor with dynamically created temp dir, 
+        # we just need to ensure it was called at all
+        # The mock_clone_repo should have been called with some dest_dir value
+        self.assertTrue(mock_clone_repo.called)
+        # Verify that the result is a dictionary containing only the github_token
+        self.assertEqual(result, {"github_token": "ghs_testtoken12345"})
 
     @patch('mcp_github_app.gh_api.create_branch')
     def test_call_tool_create_branch(self, mock_create_branch):

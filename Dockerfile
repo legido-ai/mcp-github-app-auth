@@ -16,6 +16,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+RUN pip list > pip-list.txt
+
 # Copy the application code
 COPY . .
 
@@ -24,7 +26,10 @@ RUN pip install -e .
 
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    chmod -R 777 /app
+# Give the appuser write access to common directories
+RUN chmod 777 /tmp && mkdir -p /tmp/quote-agent && chmod 777 /tmp/quote-agent
 USER appuser
 
-CMD ["python", "-m", "mcp_github_app.server"]
+CMD ["python", "-u", "-m", "mcp_github_app.server"]

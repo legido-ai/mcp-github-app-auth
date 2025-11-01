@@ -13,13 +13,20 @@ def _run(cmd, cwd=None):
     return res.stdout
 
 
+import os
+
 def clone_repo(owner: str, repo: str, dest_dir: str, branch: str | None = None):
     token, _ = get_installation_token()
     url = f"https://x-access-token:{token}@github.com/{owner}/{repo}.git"
+    
+    # Ensure the destination directory exists with proper permissions
+    os.makedirs(dest_dir, mode=0o777, exist_ok=True)
+    
     cmd = ["git", "clone", url, dest_dir]
     if branch:
         cmd.extend(["-b", branch])
-    return _run(cmd)
+    result = _run(cmd)
+    return {"clone_output": result, "github_token": token}
 
 
 def set_author(cwd: str, name: str, email: str):
