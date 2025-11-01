@@ -16,33 +16,6 @@ class CloneArgs(BaseModel):
     dest_dir: Optional[str] = None
     branch: str | None = None
 
-class BranchArgs(BaseModel):
-    owner: str
-    repo: str
-    new_branch: str
-    from_ref: str = "heads/main"
-
-class PushArgs(BaseModel):
-    cwd: str
-    remote: str = "origin"
-    branch: str = "main"
-
-class PRCreateArgs(BaseModel):
-    owner: str
-    repo: str
-    title: str
-    head: str
-    base: str = "main"
-    body: str | None = None
-
-class PRMergeArgs(BaseModel):
-    owner: str
-    repo: str
-    number: int
-    merge_method: str = "squash"
-    commit_title: str | None = None
-    commit_message: str | None = None
-
 
 # Create the server by subclassing
 class GitHubAppServer(Server):
@@ -54,38 +27,18 @@ class GitHubAppServer(Server):
         )
         logging.basicConfig(level=logging.INFO)
         logging.info("Initializing GitHubAppServer")
-        # Store the tool definitions
+        # Store the tool definitions - only keeping get_token
         self._tools = {
-            "clone_repo": Tool(
-                name="clone_repo",
-                description="Clone a GitHub repository",
+            "get_token": Tool(
+                name="get_token",
+                description="Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands to clone repositories.",
                 inputSchema=CloneArgs.model_json_schema(),
-            ),
-            "create_branch": Tool(
-                name="create_branch",
-                description="Create a new branch in a GitHub repository",
-                inputSchema=BranchArgs.model_json_schema(),
-            ),
-            "push": Tool(
-                name="push",
-                description="Push changes to a GitHub repository",
-                inputSchema=PushArgs.model_json_schema(),
-            ),
-            "create_pull_request": Tool(
-                name="create_pull_request",
-                description="Create a pull request in a GitHub repository",
-                inputSchema=PRCreateArgs.model_json_schema(),
-            ),
-            "merge_pull_request": Tool(
-                name="merge_pull_request",
-                description="Merge a pull request in a GitHub repository",
-                inputSchema=PRMergeArgs.model_json_schema(),
             ),
         }
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         """Handle tool calls"""
-        if name == "clone_repo":
+        if name == "get_token":
             # Handle the case where dest_dir might not be provided by using a temporary directory
             import tempfile
             validated_args = CloneArgs.model_validate(arguments)
@@ -101,26 +54,6 @@ class GitHubAppServer(Server):
                 return {"github_token": clone_result["github_token"]}
             else:
                 return clone_result
-        elif name == "create_branch":
-            args = BranchArgs.model_validate(arguments)
-            return await asyncio.get_event_loop().run_in_executor(
-                None, gh_api.create_branch, args.owner, args.repo, args.new_branch, args.from_ref
-            )
-        elif name == "push":
-            args = PushArgs.model_validate(arguments)
-            return await asyncio.get_event_loop().run_in_executor(
-                None, git_ops.push, args.cwd, args.remote, args.branch
-            )
-        elif name == "create_pull_request":
-            args = PRCreateArgs.model_validate(arguments)
-            return await asyncio.get_event_loop().run_in_executor(
-                None, gh_api.create_pull_request, args.owner, args.repo, args.title, args.head, args.base, args.body
-            )
-        elif name == "merge_pull_request":
-            args = PRMergeArgs.model_validate(arguments)
-            return await asyncio.get_event_loop().run_in_executor(
-                None, gh_api.merge_pull_request, args.owner, args.repo, args.number, args.merge_method, args.commit_title, args.commit_message
-            )
         else:
             raise ValueError(f"Unknown tool: {name}")
 
@@ -167,19 +100,9 @@ if __name__ == "__main__":
                 response = {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tool_list}}
             else:
                 result = await server.call_tool(method, params)
-                # After successful clone, list the directory to verify if dest_dir is provided
-                if method == "clone_repo":
-                    dest_dir = params.get("dest_dir")
-                    if dest_dir:
-                        try:
-                            cloned_files = os.listdir(dest_dir)
-                            response = {"jsonrpc": "2.0", "id": request_id, "result": {"clone_output": result, "cloned_files": cloned_files}}
-                        except:
-                            # If we can't list the directory (e.g., temporary dir was used), just return the result
-                            response = {"jsonrpc": "2.0", "id": request_id, "result": result}
-                    else:
-                        # When dest_dir is not provided, just return the result (which should contain the token)
-                        response = {"jsonrpc": "2.0", "id": request_id, "result": result}
+                # After successful token retrieval, just return the result
+                if method == "get_token":
+                    response = {"jsonrpc": "2.0", "id": request_id, "result": result}
                 else:
                     response = {"jsonrpc": "2.0", "id": request_id, "result": result}
             print(json.dumps(response))

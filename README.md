@@ -4,31 +4,15 @@ A lightweight MCP (Model Context Protocol) server that provides GitHub operation
 
 ## Tools
 
-The server implements the standard MCP protocol and supports the `tools/list` method to enumerate available tools. The available tools are:
+The server implements the standard MCP protocol and supports the `tools/list` method to enumerate available tools. There is only one tool available:
 
 ### Primary Tool
 
-- **`clone_repo`**: Obtain a GitHub token for accessing a repository
+- **`get_token`**: Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication
   - Parameters: `owner` (string), `repo` (string)
-  - Returns a GitHub token that can be used for authentication
+  - Returns a GitHub token that can be used with git commands to clone repositories
 
-Note: Despite the name, this tool does not actually clone the repository. It only returns a GitHub token that can be used to clone the repository directly using git.
-
-### Additional Tools
-
-The server also provides tools for performing common Git operations:
-
-- **`create_branch`**: Create a new branch in a GitHub repository
-  - Parameters: `owner` (string), `repo` (string), `new_branch` (string), `from_ref` (string, optional, default: "heads/main")
-
-- **`push`**: Push changes to a GitHub repository
-  - Parameters: `cwd` (string), `remote` (string, optional, default: "origin"), `branch` (string, optional, default: "main")
-
-- **`create_pull_request`**: Create a pull request in a GitHub repository
-  - Parameters: `owner` (string), `repo` (string), `title` (string), `head` (string), `base` (string, optional, default: "main"), `body` (string, optional)
-
-- **`merge_pull_request`**: Merge a pull request in a GitHub repository
-  - Parameters: `owner` (string), `repo` (string), `number` (integer), `merge_method` (string, optional, default: "squash"), `commit_title` (string, optional), `commit_message` (string, optional)
+This is the only tool provided by this server. It does not perform any Git operations itself, but instead provides temporary GitHub tokens that can be used with standard Git commands.
 
 ## Prerequisites
 
@@ -59,14 +43,14 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docke
 
 This returns a JSON response with the list of tools and their schemas:
 ```json
-{"jsonrpc": "2.0", "id": 1, "result": {"tools": [...]}]}
+{"jsonrpc": "2.0", "id": 1, "result": {"tools": [{"name": "get_token", "description": "Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands to clone repositories.", "inputSchema": {"properties": {"owner": {"title": "Owner", "type": "string"}, "repo": {"title": "Repo", "type": "string"}}, "required": ["owner", "repo"], "title": "CloneArgs", "type": "object"}}]}}
 ```
 
 ### Get GitHub Token
 
-Execute the `clone_repo` command to get a GitHub token:
+Execute the `get_token` command to get a GitHub token:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "clone_repo", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
 ```
 
 This returns a JSON response with the GitHub token:
@@ -91,9 +75,9 @@ docker build . -t localhost/test
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
 ```
 
-3. Get a GitHub token by running the clone_repo command:
+3. Get a GitHub token by running the get_token command:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "clone_repo", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
 ```
 
 This will return a JSON response like:
