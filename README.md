@@ -43,7 +43,7 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docke
 
 This returns a JSON response with the list of tools and their schemas:
 ```json
-{"jsonrpc": "2.0", "id": 1, "result": {"tools": [{"name": "get_token", "description": "Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands to clone repositories.", "inputSchema": {"properties": {"owner": {"title": "Owner", "type": "string"}, "repo": {"title": "Repo", "type": "string"}}, "required": ["owner", "repo"], "title": "CloneArgs", "type": "object"}}]}}
+{"jsonrpc": "2.0", "id": 1, "result": {"tools": [{"name": "get_token", "description": "Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands to clone repositories.", "inputSchema": {"properties": {"owner": {"title": "Owner", "type": "string"}, "repo": {"title": "Repo", "type": "string"}, "dest_dir": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Dest Dir"}, "branch": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Branch"}}, "required": ["owner", "repo"], "title": "CloneArgs", "type": "object"}}]}}
 ```
 
 ### Get GitHub Token
