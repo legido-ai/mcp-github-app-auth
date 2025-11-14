@@ -29,14 +29,28 @@ pip install .
 
 ### Docker Usage (Recommended)
 
-Build the Docker image:
+#### Option 1: Using Pre-built Public Image
+
+Use the pre-built image from GitHub Container Registry:
+```bash
+docker pull ghcr.io/legido-ai/mcp-github-app-auth:20251114170235
+```
+
+#### Option 2: Build Locally
+
+Build the Docker image from source:
 ```bash
 docker build . -t localhost/test
 ```
 
 ### List Available Tools
 
-List all available tools:
+List all available tools using the public image:
+```bash
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" ghcr.io/legido-ai/mcp-github-app-auth:20251114170235
+```
+
+Or with a locally built image:
 ```bash
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
 ```
@@ -48,9 +62,9 @@ This returns a JSON response with the list of tools and their schemas:
 
 ### Get GitHub Token
 
-Execute the `get_token` command to get a GitHub token:
+Execute the `get_token` command to get a GitHub token using the public image:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" ghcr.io/legido-ai/mcp-github-app-auth:20251114170235
 ```
 
 This returns a JSON response with the GitHub token:
@@ -65,19 +79,19 @@ git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-
 
 ## End-to-End Example
 
-1. Build the server:
+1. Pull the pre-built image:
 ```bash
-docker build . -t localhost/test
+docker pull ghcr.io/legido-ai/mcp-github-app-auth:20251114170235
 ```
 
 2. List available tools:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" ghcr.io/legido-ai/mcp-github-app-auth:20251114170235
 ```
 
 3. Get a GitHub token by running the get_token command:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" localhost/test
+echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | docker run -i --rm -e GITHUB_APP_ID="$GITHUB_APP_ID" -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" ghcr.io/legido-ai/mcp-github-app-auth:20251114170235
 ```
 
 This will return a JSON response like:
@@ -107,12 +121,42 @@ You can use this MCP server with Google's Gemini CLI to provide GitHub App authe
 
 ### Configuration
 
-1. Build the Docker image:
-```bash
-docker build . -t localhost/mcp-github-app
+Add the server to your Gemini CLI `settings.json` (located at `~/.gemini/settings.json`):
+
+#### Using Public Docker Image (Recommended)
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_APP_ID=$GITHUB_APP_ID",
+        "-e",
+        "GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY",
+        "-e",
+        "GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID",
+        "ghcr.io/legido-ai/mcp-github-app-auth:latest"
+      ],
+      "trust": true,
+      "timeout": 30000
+    }
+  },
+  "security": {
+    "auth": {
+      "selectedType": "gemini-api-key"
+    }
+  }
+}
 ```
 
-2. Add the server to your Gemini CLI `settings.json` (located at `~/.gemini/settings.json`):
+#### Using Locally Built Image
+
+If you've built the image locally:
 ```json
 {
   "mcpServers": {
@@ -133,23 +177,20 @@ docker build . -t localhost/mcp-github-app
       "trust": true,
       "timeout": 30000
     }
-  },
-  "security": {
-    "auth": {
-      "selectedType": "gemini-api-key"
-    }
   }
 }
 ```
 
-3. Verify the connection:
+### Verify the Connection
+
+Run the following command to verify the MCP server is connected:
 ```bash
 gemini mcp list
 ```
 
 You should see:
 ```
-✓ github: docker run -i --rm ... localhost/mcp-github-app (stdio) - Connected
+✓ github: docker run -i --rm ... ghcr.io/legido-ai/mcp-github-app-auth:latest (stdio) - Connected
 ```
 
 ### Using with Docker-based Gemini CLI
@@ -158,8 +199,34 @@ If you're running Gemini CLI in a Docker container, ensure:
 - The Docker socket is mounted: `-v /var/run/docker.sock:/var/run/docker.sock`
 - Environment variables are passed to the container
 - The settings.json is mounted at `/home/node/.gemini/settings.json`
+- The public Docker image is referenced in settings.json
 
-Example Docker run command:
+Example settings.json for Docker-based Gemini CLI:
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_APP_ID=$GITHUB_APP_ID",
+        "-e",
+        "GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY",
+        "-e",
+        "GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID",
+        "ghcr.io/legido-ai/mcp-github-app-auth:latest"
+      ],
+      "trust": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+Example Docker run command for Gemini CLI:
 ```bash
 docker run -d --name gemini-cli \
   -v ~/.gemini:/home/node/.gemini \
@@ -168,6 +235,11 @@ docker run -d --name gemini-cli \
   -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
   -e GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID \
   gemini-cli-image
+```
+
+Verify the connection from within the container:
+```bash
+docker exec -i gemini-cli gemini mcp list
 ```
 
 ## Security Notes
