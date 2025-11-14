@@ -101,6 +101,75 @@ Run tests with:
 python3 -m pytest tests/ -v
 ```
 
+## Integration with Google Gemini CLI
+
+You can use this MCP server with Google's Gemini CLI to provide GitHub App authentication for AI-assisted development workflows.
+
+### Configuration
+
+1. Build the Docker image:
+```bash
+docker build . -t localhost/mcp-github-app
+```
+
+2. Add the server to your Gemini CLI `settings.json` (located at `~/.gemini/settings.json`):
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_APP_ID=$GITHUB_APP_ID",
+        "-e",
+        "GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY",
+        "-e",
+        "GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID",
+        "localhost/mcp-github-app"
+      ],
+      "trust": true,
+      "timeout": 30000
+    }
+  },
+  "security": {
+    "auth": {
+      "selectedType": "gemini-api-key"
+    }
+  }
+}
+```
+
+3. Verify the connection:
+```bash
+gemini mcp list
+```
+
+You should see:
+```
+✓ github: docker run -i --rm ... localhost/mcp-github-app (stdio) - Connected
+```
+
+### Using with Docker-based Gemini CLI
+
+If you're running Gemini CLI in a Docker container, ensure:
+- The Docker socket is mounted: `-v /var/run/docker.sock:/var/run/docker.sock`
+- Environment variables are passed to the container
+- The settings.json is mounted at `/home/node/.gemini/settings.json`
+
+Example Docker run command:
+```bash
+docker run -d --name gemini-cli \
+  -v ~/.gemini:/home/node/.gemini \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e GITHUB_APP_ID=$GITHUB_APP_ID \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID \
+  gemini-cli-image
+```
+
 ## Security Notes
 
 - Installation tokens expire after approximately 1 hour
