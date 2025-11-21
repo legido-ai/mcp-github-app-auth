@@ -124,7 +124,34 @@ git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-
 
 ## Integration with Claude Desktop
 
-**IMPORTANT:** Claude Desktop/Code does not support environment variable expansion in configuration files. Variables like `$GITHUB_APP_ID` will be passed as literal strings, not their values.
+**IMPORTANT:** Variable expansion will not work in Claude Desktop/Code configuration files. Variables like `$GITHUB_APP_ID` will be passed as literal strings, not their values. This is a limitation of Claude Code's configuration system.
+
+**❌ This WILL NOT work:**
+```json
+{
+  "projects": {
+    "/path/to/your/project": {
+      "mcpServers": {
+        "github": {
+          "command": "docker",
+          "args": [
+            "run",
+            "-i",
+            "--rm",
+            "-e",
+            "GITHUB_APP_ID=$GITHUB_APP_ID",
+            "-e",
+            "GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY",
+            "-e",
+            "GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID",
+            "ghcr.io/legido-ai/mcp-github-app-auth:latest"
+          ]
+        }
+      }
+    }
+  }
+}
+```
 
 ### Option 1: Manual Configuration (Not Recommended)
 
@@ -158,7 +185,7 @@ You can manually edit `~/.claude.json` with hardcoded values, but this is **not 
 
 ### Option 2: Automated Setup Script (Recommended)
 
-Use the provided setup script to properly expand environment variables and configure Claude:
+Use the provided setup script to properly expand environment variables and configure Claude. This script is available in the [docker-claude-code repository](https://github.com/legido-ai/docker-claude-code/blob/main/utils/setup-mcp-github.sh) or can be copied from below:
 
 ```bash
 #!/bin/bash
