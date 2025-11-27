@@ -30,7 +30,7 @@ async def list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="get_token",
-            description="Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands to clone repositories.",
+            description="Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands for various operations including: git clone, git push, git pull, and git fetch. Example usage: git clone https://x-access-token:<TOKEN>@github.com/<OWNER>/<REPO>.git",
             inputSchema=GetTokenArgs.model_json_schema()
         )
     ]
@@ -46,12 +46,14 @@ async def call_tool(name: str, arguments: Any) -> list[types.TextContent]:
         # Use provided dest_dir or create a temporary one
         dest_dir = args.dest_dir or tempfile.mkdtemp()
 
-        # Clone the repository and get the token
+        # Clone the repository and return the GitHub token
+        # The token can be used for git clone, push, pull, fetch, etc.
         result = await asyncio.get_event_loop().run_in_executor(
             None, git_ops.clone_repo, args.owner, args.repo, dest_dir, args.branch
         )
 
         # Extract the token from the result
+        # This token can be used with: https://x-access-token:<TOKEN>@github.com/<OWNER>/<REPO>.git
         if isinstance(result, dict) and "github_token" in result:
             token = result["github_token"]
             return [

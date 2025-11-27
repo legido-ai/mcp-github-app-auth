@@ -29,8 +29,50 @@ A lightweight MCP (Model Context Protocol) server that provides GitHub operation
 The server implements the standard MCP protocol and provides one tool:
 
 - **`get_token`**: Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication
-  - Parameters: `owner` (string), `repo` (string)
-  - Returns a GitHub token that can be used with git commands to clone repositories
+  - Parameters:
+    - `owner` (string, required): GitHub repository owner/organization
+    - `repo` (string, required): GitHub repository name
+    - `dest_dir` (string, optional): Destination directory for clone operation
+    - `branch` (string, optional): Specific branch to clone
+  - Returns: A temporary GitHub token (valid for ~1 hour) that can be used with git commands
+
+**What is `get_token`?**
+
+The `get_token` tool generates a temporary GitHub authentication token that can be used for various Git operations AND GitHub API calls. This is NOT just for cloning - the token can be used for:
+
+**Git Operations:**
+- **git clone**: Clone private repositories
+- **git push**: Push commits to remote repositories
+- **git pull**: Pull updates from remote repositories
+- **git fetch**: Fetch remote branches and tags
+- Any other Git operation that requires authentication
+
+**GitHub REST API Operations:**
+- **Create/manage issues**: Create, update, comment on issues
+- **Pull requests**: Create, review, merge pull requests
+- **Repository management**: List contents, download files, get repository info
+- **Releases**: Create and manage releases
+- **Any GitHub REST API endpoint**: The token works with all authenticated API operations
+
+**Token Format:**
+
+For Git operations, use the token in URLs:
+```
+https://x-access-token:<GITHUB_TOKEN>@github.com/<ORGANIZATION>/<REPOSITORY>.git
+```
+
+For GitHub REST API operations, use the token in the Authorization header:
+```
+Authorization: Bearer <GITHUB_TOKEN>
+```
+
+**Important Notes for Agents:**
+
+- The token is temporary and expires after approximately 1 hour
+- The token can be used for ANY Git operation that requires authentication (clone, push, pull, fetch, etc.)
+- The token can also be used for ANY GitHub REST API operation (create issues, PRs, manage repos, etc.)
+- You do NOT need to call `get_token` separately for each operation - one token works for all Git and API operations
+- If an operation fails with authentication errors, the token may have expired - simply call `get_token` again to get a fresh token
 
 This server does not perform Git operations itself, but provides temporary GitHub tokens for use with standard Git commands.
 
@@ -85,29 +127,139 @@ This returns a JSON response with the GitHub token:
 {"jsonrpc": "2.0", "id": 1, "result": {"github_token": "ghs_tokenhere"}}
 ```
 
-You can then use this token to clone the repository:
+### Using the Token for Git Operations
+
+Once you have the token, you can use it for various Git operations:
+
+#### Clone a repository:
 ```bash
 git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
 ```
 
+#### Clone a specific branch:
+```bash
+git clone -b feature-branch https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
+```
+
+#### Push to a repository:
+```bash
+cd private-repo
+# Make some changes
+git add .
+git commit -m "Update files"
+git push https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git main
+```
+
+#### Pull updates:
+```bash
+git pull https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git main
+```
+
+#### Fetch remote branches:
+```bash
+git fetch https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
+```
+
+#### Set as remote URL:
+```bash
+git remote set-url origin https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
+# Now you can use regular git push/pull commands
+git push origin main
+```
+
+### Using the Token for GitHub API Operations
+
+The token can also be used with GitHub's REST API for various operations beyond Git commands:
+
+#### Create an Issue:
+```bash
+curl -L \
+  -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo/issues \
+  -d '{"title":"Found a bug","body":"Description of the issue","labels":["bug"]}'
+```
+
+#### Create a Pull Request:
+```bash
+curl -L \
+  -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo/pulls \
+  -d '{"title":"Amazing new feature","body":"Please pull these changes","head":"feature-branch","base":"main"}'
+```
+
+#### Add a Comment to an Issue:
+```bash
+curl -L \
+  -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo/issues/1/comments \
+  -d '{"body":"This is a comment on the issue"}'
+```
+
+#### List Repository Contents:
+```bash
+curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo/contents/path/to/directory
+```
+
+#### Download a File from Private Repository:
+```bash
+curl -H "Authorization: Bearer ghs_tokenhere" \
+  -H "Accept: application/vnd.github.v3.raw" \
+  -o downloaded-file.txt \
+  -L https://api.github.com/repos/fictional-org/private-repo/contents/path/to/file.txt
+```
+
+#### Get Repository Information:
+```bash
+curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo
+```
+
+#### List Pull Requests:
+```bash
+curl -L \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo/pulls
+```
+
+#### Create a Release:
+```bash
+curl -L \
+  -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer ghs_tokenhere" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/fictional-org/private-repo/releases \
+  -d '{"tag_name":"v1.0.0","name":"Release v1.0.0","body":"Description of the release"}'
+```
+
 ## End-to-End Example
+
+### Example 1: Clone a Repository
 
 1. Pull the pre-built image:
 ```bash
 docker pull ghcr.io/legido-ai/mcp-github-app-auth:latest
 ```
 
-2. List available tools:
-```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | \
-  docker run -i --rm \
-  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
-  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
-  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
-  ghcr.io/legido-ai/mcp-github-app-auth:latest
-```
-
-3. Get a GitHub token:
+2. Get a GitHub token:
 ```bash
 echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
   docker run -i --rm \
@@ -117,9 +269,62 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fi
   ghcr.io/legido-ai/mcp-github-app-auth:latest
 ```
 
-4. Use the returned token to clone the repository:
+3. Use the returned token to clone the repository:
 ```bash
+# Extract the token from the response (example shows ghs_tokenhere)
 git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-repo.git
+```
+
+### Example 2: Clone, Modify, and Push
+
+1. Get a GitHub token:
+```bash
+TOKEN=$(echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
+  docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth:latest | \
+  jq -r '.result.github_token')
+```
+
+2. Clone the repository:
+```bash
+git clone https://x-access-token:$TOKEN@github.com/fictional-org/private-repo.git
+cd private-repo
+```
+
+3. Make changes and push:
+```bash
+echo "# New content" >> README.md
+git add README.md
+git commit -m "Update README"
+git push https://x-access-token:$TOKEN@github.com/fictional-org/private-repo.git main
+```
+
+### Example 3: Using Token with Multiple Operations
+
+```bash
+# Get token
+TOKEN=$(echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
+  docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth:latest | \
+  jq -r '.result.github_token')
+
+# Clone repository
+git clone https://x-access-token:$TOKEN@github.com/fictional-org/private-repo.git
+cd private-repo
+
+# Set remote URL with token for subsequent operations
+git remote set-url origin https://x-access-token:$TOKEN@github.com/fictional-org/private-repo.git
+
+# Now you can use regular git commands
+git pull origin main
+git push origin main
+git fetch --all
 ```
 
 ## Integration with Claude Desktop
