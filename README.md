@@ -32,9 +32,7 @@ The server implements the standard MCP protocol and provides one tool:
   - Parameters:
     - `owner` (string, required): GitHub repository owner/organization
     - `repo` (string, required): GitHub repository name
-    - `dest_dir` (string, optional): Destination directory for clone operation
-    - `branch` (string, optional): Specific branch to clone
-  - Returns: A temporary GitHub token (valid for ~1 hour) that can be used with git commands
+  - Returns: A temporary GitHub token (valid for ~1 hour) that can be used with Git commands and GitHub REST API calls
 
 **What is `get_token`?**
 
@@ -112,9 +110,9 @@ This returns a JSON response with the list of tools and their schemas.
 
 ### Get GitHub Token
 
-Execute the `get_token` command to obtain a GitHub token:
+Execute the `get_token` tool to obtain a GitHub token:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "fictional-org", "repo": "private-repo"}}}' | \
   docker run -i --rm \
   -e GITHUB_APP_ID="$GITHUB_APP_ID" \
   -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
@@ -122,10 +120,23 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fi
   ghcr.io/legido-ai/mcp-github-app-auth:latest
 ```
 
-This returns a JSON response with the GitHub token:
+This returns the GitHub token in the response:
 ```json
-{"jsonrpc": "2.0", "id": 1, "result": {"github_token": "ghs_tokenhere"}}
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "GitHub token for fictional-org/private-repo: ghs_tokenhere"
+      }
+    ]
+  }
+}
 ```
+
+You can extract the token from the response using tools like `jq` or by parsing the JSON.
 
 ### Using the Token for Git Operations
 
@@ -261,7 +272,7 @@ docker pull ghcr.io/legido-ai/mcp-github-app-auth:latest
 
 2. Get a GitHub token:
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "fictional-org", "repo": "private-repo"}}}' | \
   docker run -i --rm \
   -e GITHUB_APP_ID="$GITHUB_APP_ID" \
   -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
@@ -279,13 +290,13 @@ git clone https://x-access-token:ghs_tokenhere@github.com/fictional-org/private-
 
 1. Get a GitHub token:
 ```bash
-TOKEN=$(echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
+TOKEN=$(echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "fictional-org", "repo": "private-repo"}}}' | \
   docker run -i --rm \
   -e GITHUB_APP_ID="$GITHUB_APP_ID" \
   -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
   -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
   ghcr.io/legido-ai/mcp-github-app-auth:latest | \
-  jq -r '.result.github_token')
+  jq -r '.result.content[0].text' | grep -oP 'ghs_\w+')
 ```
 
 2. Clone the repository:
@@ -306,13 +317,13 @@ git push https://x-access-token:$TOKEN@github.com/fictional-org/private-repo.git
 
 ```bash
 # Get token
-TOKEN=$(echo '{"jsonrpc": "2.0", "id": 1, "method": "get_token", "params": {"owner": "fictional-org", "repo": "private-repo"}}' | \
+TOKEN=$(echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "fictional-org", "repo": "private-repo"}}}' | \
   docker run -i --rm \
   -e GITHUB_APP_ID="$GITHUB_APP_ID" \
   -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
   -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
   ghcr.io/legido-ai/mcp-github-app-auth:latest | \
-  jq -r '.result.github_token')
+  jq -r '.result.content[0].text' | grep -oP 'ghs_\w+')
 
 # Clone repository
 git clone https://x-access-token:$TOKEN@github.com/fictional-org/private-repo.git

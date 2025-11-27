@@ -1,12 +1,10 @@
 import logging
-import asyncio
-import tempfile
 from typing import Any
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 import mcp.types as types
 from pydantic import BaseModel, Field
-from . import git_ops
+from .auth import get_installation_token
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -16,8 +14,6 @@ logger = logging.getLogger(__name__)
 class GetTokenArgs(BaseModel):
     owner: str = Field(description="GitHub repository owner")
     repo: str = Field(description="GitHub repository name")
-    dest_dir: str | None = Field(default=None, description="Optional destination directory for clone")
-    branch: str | None = Field(default=None, description="Optional branch to clone")
 
 
 # Create the server instance
@@ -30,7 +26,15 @@ async def list_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="get_token",
-            description="Obtain a temporary GitHub token for accessing private repositories using GitHub App authentication. This token can be used with git commands for various operations including: git clone, git push, git pull, and git fetch. Example usage: git clone https://x-access-token:<TOKEN>@github.com/<OWNER>/<REPO>.git",
+            description=(
+                "Obtain a temporary GitHub authentication token (~1 hour validity) for a repository. "
+                "This token can be used for:\n"
+                "1. Git operations: git clone, push, pull, fetch\n"
+                "   Format: https://x-access-token:<TOKEN>@github.com/<OWNER>/<REPO>.git\n"
+                "2. GitHub REST API calls: create issues, PRs, manage repos, etc.\n"
+                "   Format: Authorization: Bearer <TOKEN>\n"
+                "The same token works for all Git and API operations until it expires."
+            ),
             inputSchema=GetTokenArgs.model_json_schema()
         )
     ]
@@ -43,32 +47,18 @@ async def call_tool(name: str, arguments: Any) -> list[types.TextContent]:
         # Validate arguments
         args = GetTokenArgs.model_validate(arguments)
 
-        # Use provided dest_dir or create a temporary one
-        dest_dir = args.dest_dir or tempfile.mkdtemp()
+        # Get the GitHub installation token
+        # This token can be used for:
+        # - Git operations: git clone, push, pull, fetch with https://x-access-token:<TOKEN>@github.com/<OWNER>/<REPO>.git
+        # - GitHub API operations: curl with Authorization: Bearer <TOKEN>
+        token, expiry = get_installation_token()
 
-        # Clone the repository and return the GitHub token
-        # The token can be used for git clone, push, pull, fetch, etc.
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, git_ops.clone_repo, args.owner, args.repo, dest_dir, args.branch
-        )
-
-        # Extract the token from the result
-        # This token can be used with: https://x-access-token:<TOKEN>@github.com/<OWNER>/<REPO>.git
-        if isinstance(result, dict) and "github_token" in result:
-            token = result["github_token"]
-            return [
-                types.TextContent(
-                    type="text",
-                    text=f"Successfully cloned {args.owner}/{args.repo}. GitHub token: {token}"
-                )
-            ]
-        else:
-            return [
-                types.TextContent(
-                    type="text",
-                    text=f"Failed to clone repository: {result}"
-                )
-            ]
+        return [
+            types.TextContent(
+                type="text",
+                text=f"GitHub token for {args.owner}/{args.repo}: {token}"
+            )
+        ]
     else:
         raise ValueError(f"Unknown tool: {name}")
 
