@@ -340,9 +340,21 @@ git fetch --all
 
 ## Integration with Claude Desktop
 
-**IMPORTANT:** Variable expansion will not work in Claude Desktop/Code configuration files. Variables like `$GITHUB_APP_ID` will be passed as literal strings, not their values. This is a limitation of Claude Code's configuration system.
+### ⚠️ CRITICAL: Variable Expansion Does Not Work
 
-**❌ This WILL NOT work:**
+**Claude Desktop/Code does NOT support environment variable expansion in configuration files.**
+
+This is a fundamental limitation of Claude's configuration system. If you try to use variables like `$GITHUB_APP_ID`, Claude will treat them as **literal strings**, not as references to environment variables.
+
+**What This Means:**
+- ❌ `GITHUB_APP_ID=$GITHUB_APP_ID` → Claude passes the literal string `"$GITHUB_APP_ID"` to Docker
+- ❌ This causes authentication to fail with errors like "Could not parse the provided public key"
+- ❌ The MCP server receives invalid credentials and cannot authenticate with GitHub
+
+**Why This Happens:**
+Claude's JSON configuration parser does not perform shell-style variable substitution. The `$VARIABLE` syntax is passed unchanged to the underlying command, causing the Docker container to receive the literal string instead of the actual credential values.
+
+### ❌ This Configuration WILL NOT WORK:
 ```json
 {
   "projects": {
@@ -355,11 +367,11 @@ git fetch --all
             "-i",
             "--rm",
             "-e",
-            "GITHUB_APP_ID=$GITHUB_APP_ID",
+            "GITHUB_APP_ID=$GITHUB_APP_ID",    ← Passed as literal "$GITHUB_APP_ID"
             "-e",
-            "GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY",
+            "GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY",    ← Passed as literal string
             "-e",
-            "GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID",
+            "GITHUB_INSTALLATION_ID=$GITHUB_INSTALLATION_ID",    ← Not expanded
             "ghcr.io/legido-ai/mcp-github-app-auth:latest"
           ]
         }
@@ -368,6 +380,8 @@ git fetch --all
   }
 }
 ```
+
+**Result:** Authentication fails because the MCP receives literal strings instead of your actual credentials.
 
 ### Option 1: Manual Configuration (Not Recommended)
 
@@ -399,9 +413,20 @@ You can manually edit `~/.claude.json` with hardcoded values, but this is **not 
 }
 ```
 
-### Option 2: Automated Setup Script (Recommended)
+### ✅ Option 2: Automated Setup Script (Recommended)
 
-Use the provided setup script to properly expand environment variables and configure Claude. This script is available in the [docker-claude-code repository](https://github.com/legido-ai/docker-claude-code/blob/main/utils/setup-mcp-github.sh) or can be copied from below:
+**Why You Need This Script:**
+
+Since Claude cannot expand variables, you need an external script to:
+1. Read your environment variables (`$GITHUB_APP_ID`, etc.)
+2. Extract their actual values
+3. Write those literal values into Claude's `~/.claude.json` configuration file
+
+This script automates the process and is the **recommended solution** for setting up the MCP server with Claude.
+
+**The Script:**
+
+This script is available in the [docker-claude-code repository](https://github.com/legido-ai/docker-claude-code/blob/main/utils/setup-mcp-github.sh) or can be copied from below:
 
 ```bash
 #!/bin/bash
@@ -523,25 +548,49 @@ echo "NOTE: This configuration uses expanded environment variable values."
 echo "If you change your GitHub App credentials, you must run this script again."
 ```
 
-Save this script as `setup-mcp-github.sh`, make it executable, and run it:
+**Step-by-Step Setup Instructions:**
 
-```bash
-chmod +x setup-mcp-github.sh
-export GITHUB_APP_ID="your-app-id"
-export GITHUB_INSTALLATION_ID="your-installation-id"
-export GITHUB_PRIVATE_KEY="your-private-key"
-./setup-mcp-github.sh
-```
+1. **Save the script** as `setup-mcp-github.sh`
 
-Verify the configuration:
-```bash
-claude mcp list
-```
+2. **Make it executable:**
+   ```bash
+   chmod +x setup-mcp-github.sh
+   ```
 
-You should see:
-```
-✓ github: docker run -i --rm ... ghcr.io/legido-ai/mcp-github-app-auth:latest - Connected
-```
+3. **Set your environment variables** with your actual GitHub App credentials:
+   ```bash
+   export GITHUB_APP_ID="123456"
+   export GITHUB_INSTALLATION_ID="78910"
+   export GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+   MIIEpAIBAAKCAQEA...
+   -----END RSA PRIVATE KEY-----"
+   ```
+
+4. **Run the setup script:**
+   ```bash
+   ./setup-mcp-github.sh
+   ```
+
+   The script will:
+   - ✓ Validate that all required environment variables are set
+   - ✓ Read the actual values from your environment
+   - ✓ Create/update `~/.claude.json` with the literal values (not variable references)
+   - ✓ Create a backup of your existing configuration
+
+5. **Verify the configuration:**
+   ```bash
+   claude mcp list
+   ```
+
+   You should see:
+   ```
+   ✓ github: docker run -i --rm ... ghcr.io/legido-ai/mcp-github-app-auth:latest - Connected
+   ```
+
+**Important Notes:**
+- The script writes the **actual credential values** (not `$VARIABLE` references) into `~/.claude.json`
+- If you change your GitHub App credentials, you must run this script again to update the configuration
+- The script creates a backup at `~/.claude.json.backup` before making changes
 
 ## Integration with Google Gemini CLI
 
@@ -582,6 +631,138 @@ You should see:
 ```
 ✓ github: docker run -i --rm ... ghcr.io/legido-ai/mcp-github-app-auth:latest (stdio) - Connected
 ```
+
+## Troubleshooting
+
+### Common Authentication Errors
+
+#### Error: "Could not parse the provided public key"
+
+**Symptom:**
+```
+ERROR: Could not parse the provided public key
+Failed to get installation token: 401 ...
+```
+
+**Cause:**
+This error occurs when Claude passes literal variable names (like `"$GITHUB_PRIVATE_KEY"`) to the MCP server instead of the actual private key value.
+
+**Solution:**
+1. ✅ Use the [automated setup script](#-option-2-automated-setup-script-recommended) to configure Claude
+2. ❌ Do NOT use `$VARIABLE` syntax in `~/.claude.json`
+3. ✅ Ensure your `~/.claude.json` contains the actual credential values, not variable references
+
+**How to Verify:**
+```bash
+# Check what's actually in your configuration
+cat ~/.claude.json | grep -A 5 "GITHUB_PRIVATE_KEY"
+```
+
+If you see `"$GITHUB_PRIVATE_KEY"` or `"GITHUB_PRIVATE_KEY=$GITHUB_PRIVATE_KEY"`, the variable was not expanded. Re-run the setup script.
+
+#### Error: "Missing required environment variables"
+
+**Symptom:**
+```
+ERROR: Missing GITHUB_APP_ID / GITHUB_INSTALLATION_ID / GITHUB_PRIVATE_KEY
+```
+
+**Cause:**
+The MCP server is not receiving the required environment variables.
+
+**Solution:**
+1. Verify environment variables are set before running the setup script:
+   ```bash
+   echo $GITHUB_APP_ID
+   echo $GITHUB_INSTALLATION_ID
+   echo $GITHUB_PRIVATE_KEY | head -1
+   ```
+2. If any are empty, set them and re-run the setup script
+3. Ensure you're setting variables in the same shell session where you run the setup script
+
+#### Error: MCP Server Shows as "Disconnected"
+
+**Symptom:**
+```
+✗ github: docker run -i --rm ... ghcr.io/legido-ai/mcp-github-app-auth:latest - Disconnected
+```
+
+**Possible Causes and Solutions:**
+
+1. **Docker is not running:**
+   ```bash
+   docker ps  # Should not error
+   ```
+
+2. **Docker image is not available:**
+   ```bash
+   docker pull ghcr.io/legido-ai/mcp-github-app-auth:latest
+   ```
+
+3. **Invalid credentials in configuration:**
+   - Re-run the setup script with correct credentials
+   - Verify credentials work by testing manually:
+     ```bash
+     echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "your-org", "repo": "your-repo"}}}' | \
+       docker run -i --rm \
+       -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+       -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+       -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+       ghcr.io/legido-ai/mcp-github-app-auth:latest
+     ```
+
+#### Error: "401 Unauthorized" from GitHub API
+
+**Symptom:**
+```
+Failed to get installation token: 401 {"message":"Bad credentials",...}
+```
+
+**Possible Causes:**
+
+1. **Incorrect GitHub App ID:**
+   - Verify at: `https://github.com/settings/apps/your-app`
+   - The App ID is shown at the top of the settings page
+
+2. **Wrong Private Key:**
+   - Regenerate if needed at: `https://github.com/settings/apps/your-app`
+   - Scroll to "Private keys" section
+   - Ensure you're using the complete key including headers:
+     ```
+     -----BEGIN RSA PRIVATE KEY-----
+     ...
+     -----END RSA PRIVATE KEY-----
+     ```
+
+3. **Incorrect Installation ID:**
+   - Find it in the installation URL: `https://github.com/settings/installations/INSTALLATION_ID`
+   - Or via API: `curl -H "Authorization: Bearer <jwt_token>" https://api.github.com/app/installations`
+
+#### How to Test Configuration Manually
+
+To verify your setup works before configuring Claude:
+
+```bash
+# 1. Set environment variables
+export GITHUB_APP_ID="your-app-id"
+export GITHUB_INSTALLATION_ID="your-installation-id"
+export GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----"
+
+# 2. Test the MCP server directly
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "legido-ai", "repo": "tasks"}}}' | \
+  docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth:latest
+
+# 3. You should get a response with a token like:
+# {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"GitHub token for legido-ai/tasks: ghs_..."}]}}
+```
+
+If this works, your credentials are correct and you can proceed with Claude configuration.
 
 ## Testing
 
