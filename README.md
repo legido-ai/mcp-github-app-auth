@@ -96,29 +96,9 @@ docker build . -t mcp-github-app-auth
 
 This server implements the Model Context Protocol (MCP), which requires a proper initialization handshake before any operations can be performed. Direct JSON-RPC requests without initialization will be rejected.
 
-**Quick One-Liner Test (Recommended for Docker):**
+**Direct JSON-RPC Commands with Initialization**
 
-Use the `quick_test.py` script that handles MCP initialization automatically:
-
-```bash
-# List available tools
-python quick_test.py list | docker run -i --rm \
-  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
-  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
-  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
-  ghcr.io/legido-ai/mcp-github-app-auth:latest
-
-# Get a GitHub token
-python quick_test.py get-token legido-ai mcp-github-app-auth | docker run -i --rm \
-  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
-  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
-  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
-  ghcr.io/legido-ai/mcp-github-app-auth:latest
-```
-
-**Alternative: Direct JSON-RPC Commands with Initialization**
-
-If you prefer to use direct JSON-RPC commands without helper scripts, you can send the full initialization sequence manually:
+To test the server, you must send the full initialization sequence manually:
 
 1. **Get the tools:**
 ```bash
@@ -146,18 +126,6 @@ If you prefer to use direct JSON-RPC commands without helper scripts, you can se
   ghcr.io/legido-ai/mcp-github-app-auth
 ```
 
-**Interactive Testing:**
-
-For interactive testing with proper response parsing:
-
-```bash
-# List available tools only
-python test_mcp_server.py
-
-# List tools and test get_token
-python test_mcp_server.py --get-token legido-ai mcp-github-app-auth
-```
-
 **Using with MCP Clients:**
 
 The server is designed to be used with MCP-compatible clients such as:
@@ -175,14 +143,14 @@ MCP requires a three-step initialization sequence before accepting requests:
 3. Client sends `initialized` notification
 4. Only then can the client send requests like `tools/list` or `tools/call`
 
-**Why `echo '{"method":"tools/list"...}'` doesn't work:**
+**Why direct commands without initialization don't work:**
 
 Simple echo commands bypass the initialization sequence and will fail with:
 ```
 WARNING:root:Failed to validate request: Received request before initialization was complete
 ```
 
-This is **correct MCP protocol behavior**. Use the `quick_test.py` script above which sends the full initialization sequence automatically.
+This is **correct MCP protocol behavior**. The commands above include the full initialization sequence required by the protocol.
 
 ### Using the Token for Git Operations
 
