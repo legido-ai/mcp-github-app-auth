@@ -116,6 +116,36 @@ python quick_test.py get-token legido-ai mcp-github-app-auth | docker run -i --r
   ghcr.io/legido-ai/mcp-github-app-auth:latest
 ```
 
+**Alternative: Direct JSON-RPC Commands with Initialization**
+
+If you prefer to use direct JSON-RPC commands without helper scripts, you can send the full initialization sequence manually:
+
+1. **Get the tools:**
+```bash
+(
+  echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "manual-test", "version": "1.0"}}}'; \
+  echo '{"jsonrpc": "2.0", "method": "notifications/initialized"}'; \
+  echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}'
+) | docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth
+```
+
+2. **Get a token. In this example we want to get a token for private Github repository https://github.com/my-org/my-private-repo:**
+```bash
+(
+  echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "manual-test", "version": "1.0"}}}'; \
+  echo '{"jsonrpc": "2.0", "method": "notifications/initialized"}'; \
+  echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "my-org", "repo": "my-private-repo"}}}'
+) | docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth
+```
+
 **Interactive Testing:**
 
 For interactive testing with proper response parsing:
