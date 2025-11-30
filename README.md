@@ -8,9 +8,7 @@ A lightweight MCP (Model Context Protocol) server that provides GitHub operation
 - [Installation](#installation)
 - [Usage](#usage)
   - [Docker Usage](#docker-usage)
-  - [List Available Tools](#list-available-tools)
-  - [Get GitHub Token](#get-github-token)
-  - [End-to-End Example](#end-to-end-example)
+  - [Testing the Server](#testing-the-server)
 - [Integration with Claude Desktop](#integration-with-claude-desktop)
 - [Integration with Google Gemini CLI](#integration-with-google-gemini-cli)
 - [Testing](#testing)
@@ -94,49 +92,40 @@ Or build locally from source:
 docker build . -t mcp-github-app-auth
 ```
 
-### List Available Tools
+### Testing the Server
 
-List all available tools:
+This server implements the Model Context Protocol (MCP), which requires a proper initialization handshake before any operations can be performed. Direct JSON-RPC requests without initialization will be rejected.
+
+**Using the Test Script (Recommended):**
+
+The repository includes a test script that properly implements the MCP protocol:
+
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | \
-  docker run -i --rm \
-  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
-  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
-  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
-  ghcr.io/legido-ai/mcp-github-app-auth:latest
+# List available tools only
+python test_mcp_server.py
+
+# List tools and test get_token
+python test_mcp_server.py --get-token legido-ai mcp-github-app-auth
 ```
 
-This returns a JSON response with the list of tools and their schemas.
+**Using with MCP Clients:**
 
-### Get GitHub Token
+The server is designed to be used with MCP-compatible clients such as:
+- Claude Desktop/Code
+- Google Gemini CLI
+- Other MCP-compatible AI assistants
 
-Execute the `get_token` tool to obtain a GitHub token:
-```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_token", "arguments": {"owner": "fictional-org", "repo": "private-repo"}}}' | \
-  docker run -i --rm \
-  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
-  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
-  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
-  ghcr.io/legido-ai/mcp-github-app-auth:latest
-```
+See the integration sections below for setup instructions.
 
-This returns the GitHub token in the response:
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "GitHub token for fictional-org/private-repo: ghs_tokenhere"
-      }
-    ]
-  }
-}
-```
+**Note on Direct JSON-RPC Testing:**
 
-You can extract the token from the response using tools like `jq` or by parsing the JSON.
+MCP requires a three-step initialization sequence before accepting requests:
+1. Client sends `initialize` request with protocol version and capabilities
+2. Server responds with its capabilities
+3. Client sends `initialized` notification
+4. Only then can the client send requests like `tools/list` or `tools/call`
+
+Simple echo commands bypassing this sequence will fail with "Received request before initialization was complete". Use the test script above for proper testing.
 
 ### Using the Token for Git Operations
 
