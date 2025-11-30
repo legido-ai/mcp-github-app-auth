@@ -96,9 +96,29 @@ docker build . -t mcp-github-app-auth
 
 This server implements the Model Context Protocol (MCP), which requires a proper initialization handshake before any operations can be performed. Direct JSON-RPC requests without initialization will be rejected.
 
-**Using the Test Script (Recommended):**
+**Quick One-Liner Test (Recommended for Docker):**
 
-The repository includes a test script that properly implements the MCP protocol:
+Use the `quick_test.py` script that handles MCP initialization automatically:
+
+```bash
+# List available tools
+python quick_test.py list | docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth:latest
+
+# Get a GitHub token
+python quick_test.py get-token legido-ai mcp-github-app-auth | docker run -i --rm \
+  -e GITHUB_APP_ID="$GITHUB_APP_ID" \
+  -e GITHUB_PRIVATE_KEY="$GITHUB_PRIVATE_KEY" \
+  -e GITHUB_INSTALLATION_ID="$GITHUB_INSTALLATION_ID" \
+  ghcr.io/legido-ai/mcp-github-app-auth:latest
+```
+
+**Interactive Testing:**
+
+For interactive testing with proper response parsing:
 
 ```bash
 # List available tools only
@@ -125,7 +145,14 @@ MCP requires a three-step initialization sequence before accepting requests:
 3. Client sends `initialized` notification
 4. Only then can the client send requests like `tools/list` or `tools/call`
 
-Simple echo commands bypassing this sequence will fail with "Received request before initialization was complete". Use the test script above for proper testing.
+**Why `echo '{"method":"tools/list"...}'` doesn't work:**
+
+Simple echo commands bypass the initialization sequence and will fail with:
+```
+WARNING:root:Failed to validate request: Received request before initialization was complete
+```
+
+This is **correct MCP protocol behavior**. Use the `quick_test.py` script above which sends the full initialization sequence automatically.
 
 ### Using the Token for Git Operations
 
