@@ -800,6 +800,10 @@ This runs the Github MCP validation test which verifies the server responds corr
 
 The test automatically detects your system architecture and uses the appropriate Docker image tag (`arm` for aarch64, `latest` for other architectures).
 
+### Integration with docker-openclaw
+
+This test is automatically executed as part of the docker-openclaw `full-test` suite via the `test-github-app-auth-mcp-validation` target.
+
 ### Using pytest
 
 Run unit tests with:
