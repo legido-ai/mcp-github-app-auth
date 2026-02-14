@@ -785,7 +785,24 @@ If this works, your credentials are correct and you can proceed with Claude conf
 
 ## Testing
 
-Run tests with:
+### Using Make (Recommended)
+
+```bash
+make test-mcp-validation
+```
+
+This runs the Github MCP validation test which verifies the server responds correctly to the full MCP initialization handshake with proper JSON-RPC responses.
+
+**Note:** The test requires the following environment variables to be set:
+- `GITHUB_APP_ID`
+- `GITHUB_PRIVATE_KEY`
+- `GITHUB_INSTALLATION_ID`
+
+The test automatically detects your system architecture and uses the appropriate Docker image tag (`arm` for aarch64, `latest` for other architectures).
+
+### Using pytest
+
+Run unit tests with:
 ```bash
 python3 -m pytest tests/ -v
 ```
