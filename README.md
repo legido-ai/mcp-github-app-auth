@@ -87,6 +87,11 @@ Pull the pre-built image from GitHub Container Registry:
 docker pull ghcr.io/legido-ai/mcp-github-app-auth:latest
 ```
 
+For ARM hosts, you can use the explicit ARM tag:
+```bash
+docker pull ghcr.io/legido-ai/mcp-github-app-auth:arm
+```
+
 Or build locally from source:
 ```bash
 docker build . -t mcp-github-app-auth

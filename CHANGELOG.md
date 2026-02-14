@@ -5,4 +5,5 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
-- ci: enable multi-arch Docker builds (linux/amd64, linux/arm64) — added QEMU and Buildx setup in GitHub Actions (commit 69810b1)
+- CI publishes Docker images for both `linux/amd64` and `linux/arm64`.
+- CI now also publishes an explicit `ghcr.io/legido-ai/mcp-github-app-auth:arm` tag for ARM deployments.

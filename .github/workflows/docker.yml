@@ -46,6 +46,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}:${{ env.DOCKERIMAGETAG }}
+            ${{ env.REGISTRY }}/${{ github.repository }}:arm
       # Below step only executed if action triggered manually
       - name: Build and push Docker image using input docker image tag
         if: ${{ inputs.dockerimagetag }}
